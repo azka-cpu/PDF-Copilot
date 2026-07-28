@@ -44,39 +44,6 @@ PDF Copilot is an AI-powered document assistant that lets you upload PDFs, chat 
 | PDF Extraction      | PyMuPDF                |
 | Voice Input         | Browser Web Speech API |
 
----
-
-## How It Works
-
-```mermaid
-flowchart TD
-    A[User Signs In] --> B[Upload PDF]
-    B --> C[FastAPI Backend]
-
-    C --> D[Extract PDF Text]
-    D --> E{Text Available?}
-
-    E -->|Yes| F[Chunk Text]
-    E -->|No| G[Groq Vision OCR]
-
-    G --> F
-    F --> H[Jina AI Embeddings]
-    H --> I[Supabase + pgvector]
-
-    J[User Asks Question] --> K[Generate Query Embedding]
-    K --> I
-    I --> L[Similarity Search]
-
-    L --> M[Retrieve Relevant Chunks]
-    M --> N[Groq / Llama]
-    N --> O[Grounded Answer + Page Citations]
-
-    O --> P{Answer Found?}
-    P -->|Yes| Q[Return Answer]
-    P -->|No| R[Optional Web Search]
-    R --> S[Serper.dev]
-    S --> N
-```
 
 ### Processing Flow
 
