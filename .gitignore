@@ -1,4 +1,4 @@
-@"
+
 __pycache__/
 *.pyc
 venv/
@@ -6,4 +6,3 @@ venv/
 .env.local
 node_modules/
 .next/
-"@ | Out-File -Encoding utf8 .gitignore
