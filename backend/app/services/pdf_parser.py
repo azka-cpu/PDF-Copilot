@@ -1,6 +1,6 @@
-import base64
 import io
-import fitz  # PyMuPDF
+import base64
+import pypdfium2 as pdfium
 from groq import Groq
 
 from app.config import settings
@@ -13,9 +13,9 @@ OCR_PROMPT = (
 )
 
 
-def _ocr_page_with_groq(pix_png_bytes: bytes) -> str:
+def _ocr_page_with_groq(png_bytes: bytes) -> str:
     """Send a rendered page image to Groq's vision model to read out its text."""
-    b64_image = base64.b64encode(pix_png_bytes).decode("utf-8")
+    b64_image = base64.b64encode(png_bytes).decode("utf-8")
 
     completion = client.chat.completions.create(
         model="llama-3.2-90b-vision-preview",
@@ -39,24 +39,36 @@ def _ocr_page_with_groq(pix_png_bytes: bytes) -> str:
 
 def extract_pages(pdf_bytes: bytes) -> list[dict]:
     """
-    Extract text page by page. If a page has no extractable text (likely a
+    Extract text page by page using pypdfium2 (lightweight, serverless-friendly
+    alternative to PyMuPDF). If a page has no extractable text (likely a
     scanned/image page), fall back to Groq's vision model to read the page image.
     Returns a list of {page_number, text} (1-indexed pages).
     """
-    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    pdf = pdfium.PdfDocument(pdf_bytes)
     pages = []
 
-    for i, page in enumerate(doc):
-        text = page.get_text().strip()
+    try:
+        for i in range(len(pdf)):
+            page = pdf[i]
+            textpage = page.get_textpage()
+            text = textpage.get_text_range().strip()
+            textpage.close()
 
-        if not text:
-            # Scanned page fallback: render to image and OCR via Groq vision
-            pix = page.get_pixmap(dpi=200)
-            text = _ocr_page_with_groq(pix.tobytes("png"))
+            if not text:
+                # Scanned page fallback: render to image and OCR via Groq vision.
+                # scale=200/72 gives ~200 DPI, a good balance of OCR accuracy vs payload size.
+                bitmap = page.render(scale=200 / 72)
+                pil_image = bitmap.to_pil()
+                buf = io.BytesIO()
+                pil_image.save(buf, format="PNG")
+                text = _ocr_page_with_groq(buf.getvalue())
+                bitmap.close()
 
-        pages.append({"page_number": i + 1, "text": text})
+            pages.append({"page_number": i + 1, "text": text})
+            page.close()
+    finally:
+        pdf.close()
 
-    doc.close()
     return pages
 
 
