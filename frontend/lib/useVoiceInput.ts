@@ -2,14 +2,6 @@
 
 import { useRef, useState } from "react";
 
-// Minimal typing for the non-standard SpeechRecognition API
-interface SpeechRecognitionResultLike {
-  transcript: string;
-}
-interface SpeechRecognitionEventLike extends Event {
-  results: { 0: { 0: SpeechRecognitionResultLike } }[];
-}
-
 export function useVoiceInput(onResult: (text: string) => void) {
   const [listening, setListening] = useState(false);
   const [supported] = useState(
@@ -17,6 +9,9 @@ export function useVoiceInput(onResult: (text: string) => void) {
       typeof window !== "undefined" &&
       ("SpeechRecognition" in window || "webkitSpeechRecognition" in window)
   );
+  // The Web Speech API has no official TypeScript definitions, so this is
+  // typed loosely on purpose rather than fighting the compiler over a
+  // non-standard browser API.
   const recognitionRef = useRef<any>(null);
 
   function start() {
@@ -29,8 +24,8 @@ export function useVoiceInput(onResult: (text: string) => void) {
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
-    recognition.onresult = (event: SpeechRecognitionEventLike) => {
-      const transcript = event.results[0][0].transcript;
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript as string;
       onResult(transcript);
     };
     recognition.onend = () => setListening(false);
