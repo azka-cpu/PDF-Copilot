@@ -7,7 +7,6 @@ from app.routers import upload, chat, documents, summarize
 app = FastAPI(title="PDF Copilot API")
 
 
-# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -21,29 +20,12 @@ app.add_middleware(
 )
 
 
-# Routers
-app.include_router(
-    upload.router,
-    tags=["upload"],
-)
-
-app.include_router(
-    chat.router,
-    tags=["chat"],
-)
-
-app.include_router(
-    documents.router,
-    tags=["documents"],
-)
-
-app.include_router(
-    summarize.router,
-    tags=["summarize"],
-)
+app.include_router(upload.router, tags=["upload"])
+app.include_router(chat.router, tags=["chat"])
+app.include_router(documents.router, tags=["documents"])
+app.include_router(summarize.router, tags=["summarize"])
 
 
-# Health check
 @app.get("/")
 async def health_check():
     return {
